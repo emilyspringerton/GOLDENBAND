@@ -1,0 +1,8 @@
+# No real .gband assets exist in this repo yet (v0: format + tooling only,
+# no motion corpus checked in). Revisit this ignore once real assets land —
+# HQ-SPEC-SIM-100 §3 wants the motion library committed and Apples-audited,
+# not gitignored, once there's anything real to check in.
+*.gband
+*.gband.json
+*.o
+/tools/gbtool/gbtool

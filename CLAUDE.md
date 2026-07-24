@@ -1,0 +1,66 @@
+# GOLDENBAND — CLAUDE.md
+
+## What this is
+
+GOLDEN BAND, the animation layer from `HQ-SPEC-SIM-100`: one canonical motion asset format
+(`.gband`), consumed by a game runtime, a physics reward compiler, and (long-horizon, out of
+scope here) hardware deployment. This repo builds only HQ-SPEC-SIM-100 §8 build step 1: the
+`.gband` format itself, a C sampler, and Go pipeline tools. Steps 2-5 (SHANKPIT integration,
+reward compiler, training backbone, dual deployment) are separate, larger, not-yet-started
+backlog items — see `EMILY/BACKLOG.md` SECTION 144.
+
+Standalone repo, not in the monorepo's `go.work` — mirrors SHANKPIT/PITVIPER/EmilyOS's own
+convention. Deliberate: HQ-SPEC-SIM-100 §2 requires "no engine dependency in the asset" —
+GOLDEN BAND assets know nothing about SHANKPIT, Unreal, or Godot.
+
+## Repo map
+
+```
+format/GBAND_FORMAT.md   — the .gband binary layout + manifest schema, full spec
+src/gband.h, gband.c     — the runtime C sampler (gb_init/gb_sample/gb_blend/gb_verify).
+                            Deliberately tiny: HQ-SPEC-SIM-100 §8's own acceptance test is
+                            "a hundred line parser" — this file is ~90.
+src/sha256.h             — self-contained SHA-256 (content-addressing only, no HMAC needed
+                            here), trimmed from REDGARDEN's packages/common/hmac_sha256.h
+tools/gbtool/            — Go CLI: BVH import, hash, validate (standalone Go module)
+tests/test_sha256.c      — sha256.h against NIST FIPS 180-4 vectors
+tests/test_gband.c       — gband.c against a synthetic in-test fixture
+scripts/build_and_test.sh — builds + runs everything (C tests + Go tests)
+```
+
+## Build & test
+
+```bash
+bash scripts/build_and_test.sh
+```
+
+## `gbtool` usage
+
+```bash
+cd tools/gbtool
+GOWORK=off go run . import --bvh <file.bvh> --out <name> [--kind mocap|human|generative] [--who "<text>"]
+GOWORK=off go run . hash <name>
+GOWORK=off go run . validate <name>
+```
+
+`<name>` resolves to `<name>.gband` (binary, runtime-consumed) + `<name>.gband.json` (manifest,
+tooling-consumed).
+
+## What v0 (this pass) does not cover
+
+- glTF import (BVH only — glTF's skinning/animation extensions are a real, separate
+  undertaking, not silently skipped, see `format/GBAND_FORMAT.md`'s own gap list).
+- Skeleton assets, retargeting maps, hardware feasibility passes.
+- The reward compiler, training backbone, SHANKPIT integration (build steps 2-5).
+- `golden` promotion / Apples wiring (HQ-SPEC-SIM-100 §3's `ApplePublished` promotion events).
+
+## SAGA claim
+
+This repo's existence is `SIM-100.BEH-2`'s citation point (`reality_binding: running`) — see
+`EMILY/docs/hq-specs/HQ-SPEC-SIM-100-springerton-seam-golden-band.md` and
+`EMILY/docs/hq-specs/SAGA_SCHEMA.md`.
+
+## Commit Protocol (standing instruction)
+
+Always commit and push completed work immediately — don't wait to be asked. This is the default
+for every repo in this monorepo.

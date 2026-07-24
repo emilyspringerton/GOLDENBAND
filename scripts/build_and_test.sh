@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Builds and runs GOLDEN BAND's C tests, then the Go pipeline tool's tests.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "== sha256 core =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_sha256 tests/test_sha256.c
+/tmp/gb_test_sha256
+
+echo
+echo "== gband sampler =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_gband tests/test_gband.c src/gband.c
+/tmp/gb_test_gband
+
+echo
+echo "== gbtool (Go) =="
+# GOWORK=off: this repo is intentionally standalone, not part of the
+# monorepo's go.work (mirrors SHANKPIT/PITVIPER/EmilyOS's own convention —
+# GOLDEN BAND assets "know nothing about SHANKPIT", per HQ-SPEC-SIM-100 §2).
+(cd tools/gbtool && GOWORK=off go build ./... && GOWORK=off go vet ./... && GOWORK=off go test ./...)
