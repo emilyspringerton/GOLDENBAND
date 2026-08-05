@@ -1,6 +1,7 @@
 # GOLDENBAND Changelog
 
 ## 2026-08-05
+- feat(ci): headless Blender Tools workflow (blender-tools.yml) - founder disk/script-constrained on Windows, so armature-building and asset export both run on GitHub Actions instead of locally; push-triggered gbtool half verified live via a real CI run (RESULT: success), workflow_dispatch armature-build half not yet triggered (sess-20260723-2347-df115bd5)
 
 - feat: S144-07 .gskel/.gmesh formats + C loaders + Blender armature template/exporter (unrun, no Blender in this environment - see export script's own axis-conversion caveat) (sess-20260723-2347-df115bd5)
 
