@@ -87,9 +87,37 @@ def convert_direction(v3):
 
 
 def find_armature_and_mesh():
-    mesh_obj = bpy.context.active_object
-    if mesh_obj is None or mesh_obj.type != "MESH":
-        raise RuntimeError("Select the mesh to export first (the active object must be a Mesh).")
+    # Real friction found by actually running this against real uploaded
+    # files (2026-08-05): requiring the mesh to be the *active* object at
+    # save time is brittle -- easy to leave the armature active after the
+    # Ctrl+P/Pose Mode step, and CI runs this unattended anyway (there's no
+    # "active object" to control at all in a scripted incoming/ upload).
+    # Prefer scanning the whole file for a mesh with an Armature modifier;
+    # only fall back to requiring an active-object mesh if that's ambiguous
+    # (more than one candidate) or fails outright.
+    candidates = [obj for obj in bpy.data.objects if obj.type == "MESH"
+                  and any(m.type == "ARMATURE" and m.object is not None for m in obj.modifiers)]
+    if len(candidates) == 1:
+        mesh_obj = candidates[0]
+    elif len(candidates) > 1:
+        names = ", ".join(o.name for o in candidates)
+        active = bpy.context.active_object
+        if active is not None and active in candidates:
+            mesh_obj = active
+        else:
+            raise RuntimeError(
+                f"Multiple meshes with an Armature modifier found ({names}) and none is the "
+                f"active object -- select the one you want to export before running this."
+            )
+    else:
+        mesh_obj = bpy.context.active_object
+        if mesh_obj is None or mesh_obj.type != "MESH":
+            raise RuntimeError(
+                "No mesh with an Armature modifier found anywhere in this file, and the active "
+                "object isn't a mesh either. Make sure your mesh is parented to the armature "
+                "(Ctrl+P > With Automatic Weights) before exporting."
+            )
+
     arm_obj = None
     for mod in mesh_obj.modifiers:
         if mod.type == "ARMATURE" and mod.object is not None:
