@@ -13,6 +13,16 @@ gcc -Wall -Wextra -O2 -o /tmp/gb_test_gband tests/test_gband.c src/gband.c
 /tmp/gb_test_gband
 
 echo
+echo "== gskel skeleton loader (S144-07) =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_gskel tests/test_gskel.c src/gskel.c
+/tmp/gb_test_gskel
+
+echo
+echo "== gmesh skinned-mesh loader (S144-07) =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_gmesh tests/test_gmesh.c src/gmesh.c
+/tmp/gb_test_gmesh
+
+echo
 echo "== gbtool (Go) =="
 # GOWORK=off: this repo is intentionally standalone, not part of the
 # monorepo's go.work (mirrors SHANKPIT/PITVIPER/EmilyOS's own convention —
