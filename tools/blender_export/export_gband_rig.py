@@ -71,14 +71,30 @@ AXIS_CONVERT = mathutils.Matrix((
 ))
 AXIS_CONVERT_INV = AXIS_CONVERT.inverted()
 
+# MODEL_SCALE (2026-08-05, founder: "the unit scale isnt going to match you
+# are going to have to scale it"): the first real founder-modeled export
+# measured ~6.82 engine units tall; every other hero in the roster runs
+# ~1.3 units tall (Tyler's own old box was BOX(...,0.75,1.3,0.75)). This
+# targets that same ballpark -- tune per-model if a different character
+# comes in at a very different scale, this isn't meant to be universal.
+MODEL_SCALE = 0.19
+
 
 def convert_matrix(m):
-    return AXIS_CONVERT @ m @ AXIS_CONVERT_INV
+    """Axis-converts a rigid (rotation + translation, no scale) matrix, then
+    scales just the translation column by MODEL_SCALE -- keeps rotation
+    exact while uniformly rescaling *where* things are positioned. Used for
+    both bone rest transforms and (via .inverted() on its result elsewhere)
+    inverse-bind matrices, so mesh positions (scaled the same way in
+    convert_point) and skeleton positions stay mutually consistent."""
+    result = AXIS_CONVERT @ m @ AXIS_CONVERT_INV
+    result.translation = result.translation * MODEL_SCALE
+    return result
 
 
 def convert_point(v3):
     v4 = AXIS_CONVERT @ mathutils.Vector((v3[0], v3[1], v3[2], 1.0))
-    return (v4[0], v4[1], v4[2])
+    return (v4[0] * MODEL_SCALE, v4[1] * MODEL_SCALE, v4[2] * MODEL_SCALE)
 
 
 def convert_direction(v3):
