@@ -1,0 +1,75 @@
+name: Blender Tools (headless)
+
+# S144-07: founder is disk-space-constrained on Windows and can't run
+# Python scripts locally (inside or outside Blender) -- this workflow runs
+# every scripting step on a GitHub-hosted runner instead. Two paths:
+#
+# 1. Manually trigger this workflow (Actions tab -> Blender Tools (headless)
+#    -> Run workflow) to build a fresh TylerRig.blend armature, downloadable
+#    from that run's Artifacts section -- model/rig/animate around it in
+#    your own Blender, no script-running required on your end.
+# 2. Once you have a real .blend (mesh rigged + auto-weighted to TylerRig,
+#    with an Armature modifier) and/or .bvh files (exported animations),
+#    upload them to incoming/ in this repo via GitHub's website (repo page
+#    -> incoming/ -> "Add file" -> "Upload files", no git needed) and
+#    commit. That push automatically runs export_gband_rig.py against any
+#    .blend and gbtool import against any .bvh, uploading the resulting
+#    .gskel/.gmesh/.gband files as a downloadable artifact.
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "incoming/**"
+
+jobs:
+  build-armature:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender (headless)
+        run: sudo apt-get update && sudo apt-get install -y blender
+      - name: Build TylerRig.blend
+        run: blender --background --python tools/blender_export/create_tyler_armature.py -- --save TylerRig.blend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TylerRig-armature
+          path: TylerRig.blend
+          retention-days: 90
+
+  export-incoming:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender (headless)
+        run: sudo apt-get update && sudo apt-get install -y blender
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Export mesh/skeleton from any uploaded .blend files
+        run: |
+          set -e
+          mkdir -p out
+          shopt -s nullglob
+          for f in incoming/*.blend; do
+            echo "== exporting $f =="
+            blender --background "$f" --python tools/blender_export/export_gband_rig.py -- out
+          done
+      - name: Import any uploaded .bvh files via gbtool
+        run: |
+          set -e
+          mkdir -p out
+          shopt -s nullglob
+          cd tools/gbtool
+          for f in ../../incoming/*.bvh; do
+            name=$(basename "$f" .bvh)
+            echo "== importing $f =="
+            GOWORK=off go run . import --bvh "$f" --out "../../out/$name" --kind human --who "founder Blender export via CI"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gband-rig-export
+          path: out/
+          retention-days: 90

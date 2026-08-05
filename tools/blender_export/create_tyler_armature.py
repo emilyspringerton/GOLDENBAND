@@ -17,8 +17,16 @@ Usage: open Blender -> Scripting tab -> open this file -> Run Script
 (or: blender --background --python create_tyler_armature.py, if you already
 have a .blend to run it against). Creates one Armature object, "TylerRig",
 with 5 bones: Hips (root) -> Spine -> {Head, L_Arm, R_Arm}.
+
+Headless save: `blender --background --python create_tyler_armature.py --
+--save <out.blend>` builds the armature in a fresh scene and saves it as a
+standalone .blend -- this is what .github/workflows/blender-tools.yml runs
+so a downloadable, ready-to-open armature file exists without anyone
+needing to run this script themselves (see that workflow for the real,
+CI-verified invocation).
 """
 import bpy
+import sys
 
 # Bind-pose joint positions in Blender's Z-up space (X, Y, Z=height) --
 # matches gen_synthetic_body.py's bind_world_positions() exactly (that
@@ -66,5 +74,19 @@ def create_tyler_armature():
     return arm_obj
 
 
+def _save_path_from_argv():
+    argv = sys.argv
+    if "--" not in argv:
+        return None
+    rest = argv[argv.index("--") + 1:]
+    if len(rest) >= 2 and rest[0] == "--save":
+        return rest[1]
+    return None
+
+
 if __name__ == "__main__":
     create_tyler_armature()
+    save_path = _save_path_from_argv()
+    if save_path:
+        bpy.ops.wm.save_as_mainfile(filepath=save_path)
+        print(f"saved {save_path}")
