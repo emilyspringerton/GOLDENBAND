@@ -60,6 +60,14 @@ This repo's existence is `SIM-100.BEH-2`'s citation point (`reality_binding: run
 `EMILY/docs/hq-specs/HQ-SPEC-SIM-100-springerton-seam-golden-band.md` and
 `EMILY/docs/hq-specs/SAGA_SCHEMA.md`.
 
+## Founder Real-Time Direction
+
+Whenever the founder gives real-time direction — a new ask, a correction, a "can we also..." —
+route it through `emily observe -s info "Founder real-time: <summary>"` first, even if it isn't
+this repo's usual domain, then sprint-plan it into `EMILY/BACKLOG.md` (`emily backlog curate`,
+scoped into a real SECTION/sub-item, not just a one-line log), and only then implement. See
+`EMILY/docs/THE_EMILY_WAY.md` Principle 18 ("Pave the Cow Paths").
+
 ## Commit Protocol (standing instruction)
 
 Always commit and push completed work immediately — don't wait to be asked. This is the default
