@@ -1,0 +1,81 @@
+name: GOLDENBAND Construct
+
+# Real gap closed 2026-08-25 (S202-19): every other active repo with real CI
+# already had a *_CONSTRUCT.txt build artifact (a full concatenation of its
+# own source, matching emily.cli's own ci.yml "Generate Construct Bundle"
+# step) -- GOLDENBAND was one of 9 confirmed missing it (S202-18's audit).
+#
+# A NEW, separate workflow file rather than a step bolted onto
+# blender-tools.yml's existing jobs: that file only ever triggers on
+# workflow_dispatch or a push touching incoming/ specifically (see its own
+# header comment) -- it does not run on an ordinary push to main/master
+# touching src/tools/format, so a construct step living there would almost
+# never actually regenerate. This file's only job is the construct bundle;
+# it does not also run scripts/build_and_test.sh -- that's a real, separate
+# gap (this repo has no per-push build/test CI at all yet) flagged here
+# rather than silently folded into this item's own narrower scope.
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: goldenband-construct-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  construct:
+    name: 🏗️ Generate Source Construct
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Construct Bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="GOLDENBAND_CONSTRUCT.txt"
+          {
+            echo "GOLDENBAND CONSTRUCT ${{ github.run_number }}"
+            echo "commit: $GITHUB_SHA"
+            echo "generated_utc: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo
+          } > "$OUT"
+
+          while IFS= read -r relpath; do
+            {
+              echo "--- FILE START: ${relpath} ---"
+              cat "${relpath}"
+              echo
+              echo "--- FILE END: ${relpath} ---"
+              echo
+            } >> "$OUT"
+          done < <(
+            find . \
+              \( \
+                -path './.git' \
+                -o -path './incoming' \
+                -o -path './out' \
+              \) -prune -o \
+              -type f \
+              \( \
+                -name '*.c' -o -name '*.h' -o -name '*.go' -o -name '*.mod' -o \
+                -name '*.sum' -o -name '*.py' -o -name '*.md' -o -name '*.sh' -o \
+                -name '*.yml' -o -name '*.yaml' \
+              \) \
+              ! -name "$OUT" \
+              -print | sed 's#^./##' | LC_ALL=C sort
+          )
+
+          test -s "$OUT"
+
+      - name: Upload Construct Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GOLDENBAND_Construct_${{ github.run_number }}_${{ github.sha }}
+          path: GOLDENBAND_CONSTRUCT.txt
+          if-no-files-found: error
