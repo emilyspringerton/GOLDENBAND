@@ -155,3 +155,37 @@ func readRaw(t *testing.T, path string) []byte {
 	}
 	return b
 }
+
+func TestSmoothstepCurve(t *testing.T) {
+	curve := smoothstepCurve(16)
+	if len(curve) != 16 {
+		t.Fatalf("len = %d, want 16", len(curve))
+	}
+	if curve[0] != 0 {
+		t.Errorf("curve[0] = %v, want 0 (ease-in starts at rest)", curve[0])
+	}
+	if curve[len(curve)-1] != 1 {
+		t.Errorf("curve[last] = %v, want 1 (ease-out ends at rest)", curve[len(curve)-1])
+	}
+	// Monotonic, no overshoot -- every real ease-in/ease-out curve must be.
+	for i := 1; i < len(curve); i++ {
+		if curve[i] < curve[i-1] {
+			t.Fatalf("curve not monotonic at index %d: %v -> %v", i, curve[i-1], curve[i])
+		}
+		if curve[i] < 0 || curve[i] > 1 {
+			t.Fatalf("curve[%d] = %v out of [0,1]", i, curve[i])
+		}
+	}
+	// Smoothstep's own signature shape: slower than linear near both ends
+	// (zero velocity at the boundary), faster than linear in the middle.
+	if curve[1] >= 1.0/15.0 {
+		t.Errorf("curve[1] = %v, want < linear step %v (ease-in should start slow)", curve[1], 1.0/15.0)
+	}
+}
+
+func TestSmoothstepCurve_SingleTick(t *testing.T) {
+	curve := smoothstepCurve(1)
+	if len(curve) != 1 || curve[0] != 1 {
+		t.Fatalf("smoothstepCurve(1) = %v, want [1]", curve)
+	}
+}

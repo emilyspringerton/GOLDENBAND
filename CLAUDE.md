@@ -39,9 +39,18 @@ bash scripts/build_and_test.sh
 ```bash
 cd tools/gbtool
 GOWORK=off go run . import --bvh <file.bvh> --out <name> [--kind mocap|human|generative] [--who "<text>"]
+GOWORK=off go run . bake-ease --out <name> --channel <name> --ticks <n> [--tick-rate <n>]
 GOWORK=off go run . hash <name>
 GOWORK=off go run . validate <name>
 ```
+
+`bake-ease` (2026-08-26) synthesizes a real single-channel smoothstep ease-in/ease-out curve
+(0.0->1.0, monotonic, zero velocity at both ends) instead of importing one from a BVH — for
+callers that need a baked timing/blend curve rather than a skeletal pose (e.g. REDGARDEN's
+Abraham fireball windup, `assets/anim/rotation_ease.gband`, consumed as a facing-angle blend
+weight, not a pose). `skeleton_hash` is the zeroed sentinel, same as `import`'s own "no skeleton
+resolution yet" convention — flagged as a real, deliberate non-skeletal repurposing of the
+sampler, not a skeleton retargeting pass.
 
 `<name>` resolves to `<name>.gband` (binary, runtime-consumed) + `<name>.gband.json` (manifest,
 tooling-consumed).
