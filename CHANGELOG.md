@@ -1,5 +1,10 @@
 # GOLDENBAND Changelog
 
+## 2026-08-26
+
+- AntRig armature added (S202-28): new 11-bone Ant hero rig (Abdomen->Thorax->Head + 6 legs + 2 antennae), same create_tyler_armature.py pattern. New build-ant-armature CI job. Armature only -- REDGARDEN roster integration is a separate, later decision. Blender build not live-verified (no auth token to trigger workflow_dispatch); Python syntax + JOINTS-table structural check verified instead. Apple #16059. (sess-20260825-1938-f6bd411e)
+
+
 ## 2026-08-13
 
 - Created README.md with step-by-step Blender instructions for attaching a model to TylerRig and exporting via CI or locally (sess-20260813-2154-dda37e8b)
