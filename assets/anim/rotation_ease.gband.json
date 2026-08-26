@@ -2,14 +2,14 @@
   "gband_version": 1,
   "skeleton_hash": "0000000000000000000000000000000000000000000000000000000000000000",
   "content_hash": "81bc6a074e2378f9c61dae4d368b5c18027b3929b7b17e3720b8afd11c0de0e3",
-  "tick_rate": 64,
+  "tick_rate": 40,
   "duration_ticks": 16,
   "channels": [
     "facing_blend_t"
   ],
   "authorship": {
     "kind": "generative",
-    "who": "gbtool bake-ease, Abraham fireball windup (S202-34)"
+    "who": "gbtool bake-ease, Abraham fireball windup (S202-34), 400ms @ 40Hz"
   },
   "intent_tags": [
     "ease-in-out",
