@@ -6,6 +6,24 @@ skinned character + animations into it. See `CLAUDE.md` for the full technical m
 `GoblinFoxDragon/docs2/GOLDENBAND_INTEGRATION_NORTHSTAR.md` for the design rationale behind the
 choices below.
 
+## Available rigs
+
+Two real armatures exist so far, both built the same way (a `create_*_armature.py` script that
+constructs the Armature procedurally in Blender's own Python API, not hand-modeled) and both
+export through the exact same `.gskel`/`.gmesh`/`.gband` pipeline below — the format has no
+hardcoded bone count/hierarchy (`GSKEL_MAX_JOINTS` is 64, read from the file), so a new rig is
+never a format change, just a new joint table:
+
+| Rig | Bones | Body plan |
+|---|---|---|
+| `TylerRig` | 5 | Humanoid: `Hips → Spine → {Head, L_Arm, R_Arm}` |
+| `AntRig` (S202-28) | 11 | Insect: `Abdomen → Thorax → Head`, 6 single-bone legs (front/mid/rear pairs), 2 antennae — horizontal/low-slung, not upright |
+
+`AntRig` is the armature only (this repo's own stated scope) — whether it becomes a real
+REDGARDEN roster hero is a separate, later decision, not assumed here. Build it the same way as
+`TylerRig` below, swapping in `tools/blender_export/create_ant_armature.py` /
+`.github/workflows/blender-tools.yml`'s `build-ant-armature` job.
+
 ## Attaching a model to the rig, in Blender
 
 You need three things before you have something exportable: a rig (armature), a model (mesh),
@@ -17,7 +35,8 @@ just need to attach them:
    (`Hips → Spine → {Head, L_Arm, R_Arm}`) that the engine's box-rig and mesh-rig both expect.
    If you'd rather build it fresh in your own file instead of opening this one: Scripting tab →
    open `tools/blender_export/create_tyler_armature.py` → Run Script. Either way you end up with
-   one Armature object named `TylerRig`.
+   one Armature object named `TylerRig`. (For `AntRig` instead, same steps with
+   `create_ant_armature.py` — see "Available rigs" above.)
 2. **Bring your model into the same scene** and position/scale it around the armature in
    Blender's normal (Z-up) view — the armature is already built in Blender's own coordinate
    space, so nothing needs pre-conversion at this step.
