@@ -54,6 +54,31 @@ jobs:
           path: TylerRig.blend
           retention-days: 90
 
+  # S202-28, founder real-time: "add a rig for an ant hero" -- same job
+  # shape as build-armature above, one new armature (tools/blender_export/
+  # create_ant_armature.py's own header comment has the full body-plan
+  # reasoning). Separate job, not folded into build-armature, so either
+  # rig can be rebuilt/iterated without touching the other's own step.
+  build-ant-armature:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender (headless, real current version)
+        run: |
+          set -e
+          curl -sL -o /tmp/blender.tar.xz "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          mkdir -p /tmp/blender_install
+          tar -xJf /tmp/blender.tar.xz -C /tmp/blender_install --strip-components=1
+          echo "/tmp/blender_install" >> "$GITHUB_PATH"
+      - name: Build AntRig.blend
+        run: blender --background --python tools/blender_export/create_ant_armature.py -- --save AntRig.blend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AntRig-armature
+          path: AntRig.blend
+          retention-days: 90
+
   export-incoming:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
