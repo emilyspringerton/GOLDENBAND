@@ -23,6 +23,11 @@ gcc -Wall -Wextra -O2 -o /tmp/gb_test_gmesh tests/test_gmesh.c src/gmesh.c
 /tmp/gb_test_gmesh
 
 echo
+echo "== gseq animation stitching/crossfade (S144-XX) =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_gseq tests/test_gseq.c src/gseq.c src/gband.c -lm
+/tmp/gb_test_gseq
+
+echo
 echo "== gbtool (Go) =="
 # GOWORK=off: this repo is intentionally standalone, not part of the
 # monorepo's go.work (mirrors SHANKPIT/PITVIPER/EmilyOS's own convention —

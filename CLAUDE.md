@@ -22,7 +22,18 @@ src/gband.h, gband.c     — the runtime C sampler (gb_init/gb_sample/gb_blend/g
                             "a hundred line parser" — this file is ~90.
 src/sha256.h             — self-contained SHA-256 (content-addressing only, no HMAC needed
                             here), trimmed from REDGARDEN's packages/common/hmac_sha256.h
-tools/gbtool/            — Go CLI: BVH import, hash, validate (standalone Go module)
+src/gseq.h, gseq.c       — real animation STITCHING (founder real-time: "make sure we can
+                            stitch animations together like James Bond walk turn raise gun
+                            shoot") -- chains several different .gband clips into one ordered
+                            GSeq with a real nlerp crossfade at each transition, resolving
+                            channel names against a GSkel so mismatched clips fall back to that
+                            joint's own real rest pose. The one real, minimal channel-name-aware
+                            layer above gband.c's own name-blind sampler -- see gseq.h's own
+                            header comment for the full design and what it deliberately doesn't
+                            cover yet (no authored .gseq asset format/NOCK UI, single blend
+                            duration per whole sequence).
+tools/gbtool/            — Go CLI: BVH import, glTF import (quaternion anim + mesh + skeleton),
+                            hash, validate (standalone Go module)
 tests/test_sha256.c      — sha256.h against NIST FIPS 180-4 vectors
 tests/test_gband.c       — gband.c against a synthetic in-test fixture
 scripts/build_and_test.sh — builds + runs everything (C tests + Go tests)
