@@ -11,6 +11,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -44,9 +45,83 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   gbtool import --bvh <file.bvh> --out <name> [--kind mocap|human|generative] [--who <text>]
+  gbtool import --gltf <file.glb|.gltf> --out <name> [--tick-rate <n>] [--kind ...] [--who <text>]
   gbtool bake-ease --out <name> --channel <name> --ticks <n> [--tick-rate <n>]
   gbtool hash <name>
   gbtool validate <name>`)
+}
+
+// runImportGLTF converts a glTF/.glb file into real .gskel/.gmesh/.gband
+// assets (see import_gltf.go's own header comment for v0 scope), writing
+// whichever of the three the source file actually contains under <out>
+// (skeleton/mesh always share the base name; the animation, when
+// present, gets the standard .gband + .gband.json pair GBAND_FORMAT.md
+// already defines, with skeleton_hash set to a real sha256 of the
+// paired .gskel file's own bytes -- the same "hash of the referenced
+// skeleton asset" contract the format doc already specifies).
+func runImportGLTF(path, out, kind, who string, tickRate uint32) int {
+	loaded, err := LoadGLTF(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "import: %v\n", err)
+		return 1
+	}
+	assets, err := ConvertGLTF(loaded, tickRate)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "import: converting %s: %v\n", path, err)
+		return 1
+	}
+
+	skelPath := out + ".gskel"
+	if err := assets.Skel.WriteFile(skelPath); err != nil {
+		fmt.Fprintf(os.Stderr, "import: writing %s: %v\n", skelPath, err)
+		return 1
+	}
+	fmt.Printf("imported %s -> %s (%d joints)\n", path, skelPath, len(assets.Skel.Joints))
+
+	if assets.Mesh != nil {
+		meshPath := out + ".gmesh"
+		if err := assets.Mesh.WriteFile(meshPath); err != nil {
+			fmt.Fprintf(os.Stderr, "import: writing %s: %v\n", meshPath, err)
+			return 1
+		}
+		fmt.Printf("imported %s -> %s (%d verts, %d indices)\n", path, meshPath, len(assets.Mesh.Vertices), len(assets.Mesh.Indices))
+	}
+
+	if assets.Anim != nil {
+		skelBytes, err := os.ReadFile(skelPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "import: re-reading %s for skeleton_hash: %v\n", skelPath, err)
+			return 1
+		}
+		skelHash := sha256.Sum256(skelBytes)
+		assets.Anim.SkeletonHash = skelHash
+
+		binPath := out + ".gband"
+		if err := assets.Anim.WriteFile(binPath); err != nil {
+			fmt.Fprintf(os.Stderr, "import: writing %s: %v\n", binPath, err)
+			return 1
+		}
+		manifest := &Manifest{
+			GBandVersion:  1,
+			SkeletonHash:  hex.EncodeToString(skelHash[:]),
+			ContentHash:   hex.EncodeToString(assets.Anim.ContentHash[:]),
+			TickRate:      assets.Anim.TickRate,
+			DurationTicks: assets.Anim.DurationTicks,
+			Channels:      assets.AnimChannels,
+			Authorship:    Authorship{Kind: kind, Who: who},
+			IntentTags:    []string{},
+			LoopPoints:    LoopPoints{StartTick: 0, EndTick: assets.Anim.DurationTicks},
+		}
+		jsonPath := out + ".gband.json"
+		if err := WriteManifest(jsonPath, manifest); err != nil {
+			fmt.Fprintf(os.Stderr, "import: writing %s: %v\n", jsonPath, err)
+			return 1
+		}
+		fmt.Printf("imported %s -> %s + %s (%d channels, %d ticks @ %d/s)\n",
+			path, binPath, jsonPath, len(assets.AnimChannels), assets.Anim.DurationTicks, assets.Anim.TickRate)
+	}
+
+	return 0
 }
 
 // runBakeEase synthesizes a single-channel, procedurally-generated 0.0->1.0
@@ -138,15 +213,25 @@ func smoothstepCurve(ticks int) []float32 {
 func runImport(args []string) int {
 	fs := flag.NewFlagSet("import", flag.ContinueOnError)
 	bvhPath := fs.String("bvh", "", "input BVH file")
-	out := fs.String("out", "", "output name (writes <name>.gband + <name>.gband.json)")
+	gltfPath := fs.String("gltf", "", "input glTF file (.glb or .gltf) -- see import --gltf's own header comment in import_gltf.go for v0 scope")
+	tickRate := fs.Uint("tick-rate", 30, "--gltf only: uniform resample rate for animation channels")
+	out := fs.String("out", "", "output name (writes <name>.gband/.gskel/.gmesh + <name>.gband.json as applicable)")
 	kind := fs.String("kind", "mocap", "authorship.kind: mocap|human|generative")
 	who := fs.String("who", "", "authorship.who — labeled honestly")
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
-	if *bvhPath == "" || *out == "" {
-		fmt.Fprintln(os.Stderr, "import: --bvh and --out are required")
+	if *out == "" {
+		fmt.Fprintln(os.Stderr, "import: --out is required")
 		return 1
+	}
+	if (*bvhPath == "") == (*gltfPath == "") {
+		fmt.Fprintln(os.Stderr, "import: exactly one of --bvh or --gltf is required")
+		return 1
+	}
+
+	if *gltfPath != "" {
+		return runImportGLTF(*gltfPath, *out, *kind, *who, uint32(*tickRate))
 	}
 
 	f, err := os.Open(*bvhPath)

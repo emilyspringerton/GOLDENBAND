@@ -39,10 +39,24 @@ bash scripts/build_and_test.sh
 ```bash
 cd tools/gbtool
 GOWORK=off go run . import --bvh <file.bvh> --out <name> [--kind mocap|human|generative] [--who "<text>"]
+GOWORK=off go run . import --gltf <file.glb|.gltf> --out <name> [--tick-rate <n>] [--kind ...] [--who "<text>"]
 GOWORK=off go run . bake-ease --out <name> --channel <name> --ticks <n> [--tick-rate <n>]
 GOWORK=off go run . hash <name>
 GOWORK=off go run . validate <name>
 ```
+
+`import --gltf` (2026-09-16, founder real-time: "let's start iterating towards nock tools
+modeler (blender) and golden band we need to be able to import quaternion animations into nock
+golden band") reads a real glTF 2.0 file — Blender's own native "glTF Binary (.glb)" / "glTF
+Separate" export format, quaternion-based — and writes out whichever of `<name>.gskel`
+(skeleton, real quaternion rest poses), `<name>.gmesh` (skinned geometry), and `<name>.gband` +
+`.gband.json` (animation, real `<joint>.qx/.qy/.qz/.qw` quaternion channels — see
+`format/GBAND_FORMAT.md`'s own "Quaternion channels" section) the source file actually contains.
+Hand-rolled stdlib-only glTF reader (`tools/gbtool/gltf.go`), no vendored dependency. v0 scope:
+first skin/mesh/animation only, LINEAR sampler interpolation only, nlerp (not slerp) for
+quaternion resampling — all documented in `import_gltf.go`'s own header comment and the format
+doc, not silently assumed. This is the real, direct Blender unlock for GOLDEN BAND: no custom
+Blender plugin needed for this pass, just glTF's own standard export.
 
 `bake-ease` (2026-08-26) synthesizes a real single-channel smoothstep ease-in/ease-out curve
 (0.0->1.0, monotonic, zero velocity at both ends) instead of importing one from a BVH — for
@@ -57,9 +71,15 @@ tooling-consumed).
 
 ## What v0 (this pass) does not cover
 
-- glTF import (BVH only — glTF's skinning/animation extensions are a real, separate
-  undertaking, not silently skipped, see `format/GBAND_FORMAT.md`'s own gap list).
-- Skeleton assets, retargeting maps, hardware feasibility passes.
+- A Blender plugin / "NOCK tools modeler" UI (the founder's own longer-horizon direction this
+  glTF importer is a first real step towards) — not started; glTF import is the pipeline half,
+  a NOCK-hosted authoring/browsing surface is a separate, not-yet-scoped next phase.
+- An "animation repository" (NOCK-hosted storage/browse UI for `.gband`/`.gskel`/`.gmesh`
+  assets, mirroring NOCK's own texture library) — named as real, near-term direction, not built.
+- Multi-skin/multi-mesh/multi-clip glTF files in one import run (first of each only, see
+  `format/GBAND_FORMAT.md`'s own gap list).
+- True slerp for quaternion channel blending (nlerp only, both at import and in `gb_blend`).
+- Retargeting maps, hardware feasibility passes.
 - The reward compiler, training backbone, SHANKPIT integration (build steps 2-5).
 - `golden` promotion / Apples wiring (HQ-SPEC-SIM-100 §3's `ApplePublished` promotion events).
 

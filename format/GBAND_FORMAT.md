@@ -71,11 +71,34 @@ manifest). Promotions to `golden` status are Apples-logged `ApplePublished` even
 HQ-SPEC-SIM-100 §3 — out of scope for this pass (no promotion pipeline wired yet), but the
 hash is what a future promotion event would cite.
 
+## Quaternion channels (S144-XX, glTF import)
+
+BVH import only ever produces Euler channels (`<joint>.Xrotation` etc. — BVH's own native
+rotation representation). `gbtool import --gltf` (glTF is Blender's own native, quaternion-based
+export format) produces real quaternion channels instead, named `<joint>.qx`, `<joint>.qy`,
+`<joint>.qz`, `<joint>.qw` — same "row-major float32 columns, no per-channel type variation"
+binary layout as every other channel; the `q` prefix is a naming convention for
+tooling/consumers to recognize a quaternion group, not a distinct wire format. Translation
+channels from a glTF import are named `<joint>.tx/.ty/.tz`.
+
+`gb_blend`'s runtime interpolation (src/gband.c) is a plain per-component lerp with no
+channel-type awareness — correct for scalar/Euler channels, but for a quaternion group this is
+an nlerp approximation (lerp then the CALLER must renormalize before using the result for
+skinning), not a true slerp. Acceptable for blending between adjacent, already-uniformly-sampled
+ticks of the same clip (the only case `gb_blend` is used for); not correct for blending between
+two arbitrary, widely-separated orientations. `gbtool import --gltf`'s own resampling step
+(collapsing a glTF clip's real, sparse keyframes down to `.gband`'s required uniform tick rate)
+performs and renormalizes this same nlerp itself, at import time — the runtime sampler never
+does curve interpolation of its own, per this doc's own "resample at import" rule above.
+
 ## What v0 does not cover (explicitly deferred)
 
-- glTF import (BVH only, this pass — glTF's skinning/animation extensions are a real,
-  separate undertaking; documented as a gap, not silently skipped).
-- Skeleton assets, retargeting maps, feasibility passes (HQ-SPEC-SIM-100 §3's hardware-bound
-  actuator metadata).
+- glTF import beyond a single skin/mesh/animation per file (`gbtool import --gltf` takes the
+  FIRST skin, first mesh's first primitive, first animation only — a real, documented v0 scope
+  cut, not silently wrong for a multi-clip file).
+- True slerp for quaternion channel blending (see above — nlerp only, both at import-time
+  resampling and in the runtime `gb_blend`).
+- STEP/CUBICSPLINE glTF sampler interpolation (LINEAR only).
+- Retargeting maps, hardware feasibility passes.
 - The reward compiler, training backbone, SHANKPIT integration (build steps 2-5).
 - `golden` promotion / Apples wiring.
