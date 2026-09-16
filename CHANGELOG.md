@@ -1,5 +1,10 @@
 # GOLDENBAND Changelog
 
+## 2026-09-16
+
+- Add glTF import (gbtool import --gltf): real quaternion animation channels + mesh + skeleton, first step towards NOCK tools modeler / Blender pipeline -- S144-XX (sess-20260905-0720-ec33e7c5)
+
+
 ## 2026-08-26
 
 - AntRig armature added (S202-28): new 11-bone Ant hero rig (Abdomen->Thorax->Head + 6 legs + 2 antennae), same create_tyler_armature.py pattern. New build-ant-armature CI job. Armature only -- REDGARDEN roster integration is a separate, later decision. Blender build not live-verified (no auth token to trigger workflow_dispatch); Python syntax + JOINTS-table structural check verified instead. Apple #16059. (sess-20260825-1938-f6bd411e)
