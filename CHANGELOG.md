@@ -1,6 +1,7 @@
 # GOLDENBAND Changelog
 
 ## 2026-09-16
+- Add gseq.h/gseq.c: real animation stitching -- ordered clip sequences with nlerp crossfade transitions, channel-name-aware pose resolution (sess-20260905-0720-ec33e7c5)
 
 - Add glTF import (gbtool import --gltf): real quaternion animation channels + mesh + skeleton, first step towards NOCK tools modeler / Blender pipeline -- S144-XX (sess-20260905-0720-ec33e7c5)
 
