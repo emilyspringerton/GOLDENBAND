@@ -11,14 +11,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static GSkel g_skel;
-static GMesh g_mesh;
-static GSeqClip g_idle_clip, g_walk_clip;
-static GSeq g_idle_seq, g_walk_seq;
-static int g_ready = 0;
+typedef struct {
+    int ready;
+    GSkel skel;
+    GMesh mesh;
+    GSeqClip idle_clip, walk_clip;
+    GSeq idle_seq, walk_seq;
+    float *out_buf; /* owned, 6 floats per output vertex (pos+normal), sized to THIS kit's own mesh */
+    uint32_t out_capacity_verts;
+} GbandSkelNpcKit;
 
-static float *g_out_buf; /* owned, 6 floats per output vertex (pos+normal) */
-static uint32_t g_out_capacity_verts;
+static GbandSkelNpcKit g_kits[GBAND_SKEL_NPC_MAX_KITS];
+static int g_kit_count = 0;
 
 static void init_single_clip_seq(GSeq *seq) {
     memset(seq, 0, sizeof(*seq));
@@ -29,49 +33,61 @@ static void init_single_clip_seq(GSeq *seq) {
     seq->loop = 1;
 }
 
-int gband_skel_npc_init(const char *asset_dir, const char *mesh_name, const char *idle_clip_name, const char *walk_clip_name) {
+int gband_skel_npc_load_kit(const char *asset_dir, const char *mesh_name, const char *idle_clip_name, const char *walk_clip_name) {
+    if (g_kit_count >= GBAND_SKEL_NPC_MAX_KITS) return -1;
+    GbandSkelNpcKit *kit = &g_kits[g_kit_count];
+    memset(kit, 0, sizeof(*kit));
+
     char path[512], gband_path[512], manifest_path[512];
 
     snprintf(path, sizeof(path), "%s/%s.gskel", asset_dir, mesh_name);
-    if (!gskel_init(path, &g_skel)) return 0;
+    if (!gskel_init(path, &kit->skel)) return -1;
     snprintf(path, sizeof(path), "%s/%s.gmesh", asset_dir, mesh_name);
-    if (!gmesh_init(path, &g_mesh)) return 0;
+    if (!gmesh_init(path, &kit->mesh)) return -1;
 
     snprintf(gband_path, sizeof(gband_path), "%s/%s.gband", asset_dir, idle_clip_name);
     snprintf(manifest_path, sizeof(manifest_path), "%s/%s.gband.json", asset_dir, idle_clip_name);
-    if (!gseq_clip_load(gband_path, manifest_path, &g_idle_clip)) { gmesh_free(&g_mesh); return 0; }
+    if (!gseq_clip_load(gband_path, manifest_path, &kit->idle_clip)) { gmesh_free(&kit->mesh); return -1; }
 
     snprintf(gband_path, sizeof(gband_path), "%s/%s.gband", asset_dir, walk_clip_name);
     snprintf(manifest_path, sizeof(manifest_path), "%s/%s.gband.json", asset_dir, walk_clip_name);
-    if (!gseq_clip_load(gband_path, manifest_path, &g_walk_clip)) { gseq_clip_free(&g_idle_clip); gmesh_free(&g_mesh); return 0; }
+    if (!gseq_clip_load(gband_path, manifest_path, &kit->walk_clip)) { gseq_clip_free(&kit->idle_clip); gmesh_free(&kit->mesh); return -1; }
 
-    init_single_clip_seq(&g_idle_seq);
-    init_single_clip_seq(&g_walk_seq);
+    init_single_clip_seq(&kit->idle_seq);
+    init_single_clip_seq(&kit->walk_seq);
 
-    g_out_capacity_verts = g_mesh.index_count;
-    g_out_buf = (float *)malloc((size_t)g_out_capacity_verts * 6 * sizeof(float));
-    if (!g_out_buf) { gseq_clip_free(&g_idle_clip); gseq_clip_free(&g_walk_clip); gmesh_free(&g_mesh); return 0; }
+    kit->out_capacity_verts = kit->mesh.index_count;
+    kit->out_buf = (float *)malloc((size_t)kit->out_capacity_verts * 6 * sizeof(float));
+    if (!kit->out_buf) { gseq_clip_free(&kit->idle_clip); gseq_clip_free(&kit->walk_clip); gmesh_free(&kit->mesh); return -1; }
 
-    g_ready = 1;
-    return 1;
+    kit->ready = 1;
+    return g_kit_count++;
 }
 
 void gband_skel_npc_shutdown(void) {
-    if (!g_ready) return;
-    gseq_clip_free(&g_idle_clip);
-    gseq_clip_free(&g_walk_clip);
-    gmesh_free(&g_mesh);
-    free(g_out_buf);
-    g_out_buf = NULL;
-    g_ready = 0;
+    for (int i = 0; i < g_kit_count; i++) {
+        GbandSkelNpcKit *kit = &g_kits[i];
+        if (!kit->ready) continue;
+        gseq_clip_free(&kit->idle_clip);
+        gseq_clip_free(&kit->walk_clip);
+        gmesh_free(&kit->mesh);
+        free(kit->out_buf);
+        kit->out_buf = NULL;
+        kit->ready = 0;
+    }
+    g_kit_count = 0;
 }
 
-int gband_skel_npc_ready(void) { return g_ready; }
+int gband_skel_npc_kit_ready(int kit_index) {
+    if (kit_index < 0 || kit_index >= g_kit_count) return 0;
+    return g_kits[kit_index].ready;
+}
 
 #define MAX_NPC_SLOTS 32
 static GSeqPlayer g_idle_players[MAX_NPC_SLOTS];
 static GSeqPlayer g_walk_players[MAX_NPC_SLOTS];
 static int g_players_init[MAX_NPC_SLOTS];
+static int g_slot_kit[MAX_NPC_SLOTS]; /* which kit_index this slot's own players were last bound to */
 static float g_prev_x[MAX_NPC_SLOTS];
 static float g_prev_z[MAX_NPC_SLOTS];
 static int g_has_prev[MAX_NPC_SLOTS];
@@ -80,17 +96,24 @@ static int g_has_prev[MAX_NPC_SLOTS];
    hand-kept in sync across a different real boundary elsewhere in this monorepo. */
 #define GBAND_SKEL_NPC_MOVE_EPSILON 0.02f
 
-void gband_skel_npc_draw(int npc_slot, float npc_x, float npc_y, float npc_z, float facing_rad, float dt_ms,
+void gband_skel_npc_draw(int kit_index, int npc_slot, float npc_x, float npc_y, float npc_z, float facing_rad, float dt_ms,
                           const Mat4 *vp,
                           void (*draw_skinned)(const float *verts6, int vert_count,
                                                 const Mat4 *mvp, const Mat4 *model)) {
-    if (!g_ready) return;
+    if (kit_index < 0 || kit_index >= g_kit_count) return;
+    GbandSkelNpcKit *kit = &g_kits[kit_index];
+    if (!kit->ready) return;
     if (npc_slot < 0 || npc_slot >= MAX_NPC_SLOTS) return;
 
-    if (!g_players_init[npc_slot]) {
-        gseq_player_init(&g_idle_players[npc_slot], &g_idle_seq, &g_idle_clip);
-        gseq_player_init(&g_walk_players[npc_slot], &g_walk_seq, &g_walk_clip);
+    /* Real, deliberate re-init on a kit change for this slot -- a respawned NPC assigned a
+       different look (or, defensively, any stale slot reuse) must never sample its new kit's
+       skeleton with an animation player still bound to the OLD kit's own clip data. */
+    if (!g_players_init[npc_slot] || g_slot_kit[npc_slot] != kit_index) {
+        gseq_player_init(&g_idle_players[npc_slot], &kit->idle_seq, &kit->idle_clip);
+        gseq_player_init(&g_walk_players[npc_slot], &kit->walk_seq, &kit->walk_clip);
         g_players_init[npc_slot] = 1;
+        g_slot_kit[npc_slot] = kit_index;
+        g_has_prev[npc_slot] = 0; /* real fresh start -- a position delta across a kit swap isn't a real "walked" signal */
     }
 
     int walking = 0;
@@ -112,10 +135,10 @@ void gband_skel_npc_draw(int npc_slot, float npc_x, float npc_y, float npc_z, fl
 
     float pose_rot[GSKEL_MAX_JOINTS * 4];
     float pose_trans[GSKEL_MAX_JOINTS * 3];
-    gseq_player_sample_pose(active, &g_skel, pose_rot, pose_trans);
+    gseq_player_sample_pose(active, &kit->skel, pose_rot, pose_trans);
 
     float skin[GSKEL_MAX_JOINTS][16];
-    gpose_compute_skin_matrices(&g_skel, pose_rot, pose_trans, skin);
+    gpose_compute_skin_matrices(&kit->skel, pose_rot, pose_trans, skin);
 
     /* Bake the NPC's own world transform (position + facing) into every joint's skin matrix,
        the same "vertices already come out world-space" contract gband_mesh_rig_draw's own
@@ -123,17 +146,17 @@ void gband_skel_npc_draw(int npc_slot, float npc_x, float npc_y, float npc_z, fl
     Mat4 npc_world_t = mat4_translate(npc_x, npc_y, npc_z);
     Mat4 npc_rot = mat4_rotate_y(facing_rad);
     Mat4 npc_world = mat4_multiply(&npc_world_t, &npc_rot);
-    for (uint32_t j = 0; j < g_skel.joint_count; j++) {
+    for (uint32_t j = 0; j < kit->skel.joint_count; j++) {
         Mat4 sj;
         memcpy(sj.m, skin[j], sizeof(sj.m));
         Mat4 baked = mat4_multiply(&npc_world, &sj);
         memcpy(skin[j], baked.m, sizeof(baked.m));
     }
 
-    uint32_t vert_count = gpose_skin_mesh(&g_mesh, skin, g_out_buf);
-    if (vert_count > g_out_capacity_verts) vert_count = g_out_capacity_verts; /* defensive */
+    uint32_t vert_count = gpose_skin_mesh(&kit->mesh, skin, kit->out_buf);
+    if (vert_count > kit->out_capacity_verts) vert_count = kit->out_capacity_verts; /* defensive */
 
     Mat4 identity = mat4_identity();
     Mat4 mvp = mat4_multiply(vp, &identity);
-    draw_skinned(g_out_buf, (int)vert_count, &mvp, &identity);
+    draw_skinned(kit->out_buf, (int)vert_count, &mvp, &identity);
 }
