@@ -1,5 +1,10 @@
 # GOLDENBAND Changelog
 
+## 2026-09-17
+
+- Raise GSKEL_MAX_JOINTS 64 -> 128 -- a real 65-joint rig hit the old cap on first real use (sess-20260905-0720-ec33e7c5)
+
+
 ## 2026-09-16
 - Add gseq.h/gseq.c: real animation stitching -- ordered clip sequences with nlerp crossfade transitions, channel-name-aware pose resolution (sess-20260905-0720-ec33e7c5)
 
