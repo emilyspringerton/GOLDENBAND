@@ -101,9 +101,79 @@ static void test_root_rotation_moves_child_vertex(void) {
           "root rotation carries the vertex normal correctly");
 }
 
+// Real, minimal quaternion-rotate-vector helper (standard v' = v + 2w(q_xyz x v) + 2(q_xyz x
+// (q_xyz x v)) form), local to this test file -- matches the same "no cross-file coupling to
+// gpose.c's own static helpers" discipline the rest of this file already holds itself to (near()
+// is its own local copy too, not imported).
+static void rotate_vec(const float q[4], const float v[3], float out[3]) {
+    float qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+    float tx = 2.0f * (qy * v[2] - qz * v[1]);
+    float ty = 2.0f * (qz * v[0] - qx * v[2]);
+    float tz = 2.0f * (qx * v[1] - qy * v[0]);
+    out[0] = v[0] + qw * tx + (qy * tz - qz * ty);
+    out[1] = v[1] + qw * ty + (qz * tx - qx * tz);
+    out[2] = v[2] + qw * tz + (qx * ty - qy * tx);
+}
+
+static const float IDENTITY16[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+
+static void test_look_at_full_rotation_faces_target(void) {
+    // A single root joint at the origin, "forward" = +Z, unclamped (max_angle_deg large).
+    float pose_rot[4] = {0, 0, 0, 1};
+    float pose_trans[3] = {0, 0, 0};
+    float local_axis[3] = {0, 0, 1};
+    float target[3] = {1, 0, 0}; // directly along +X -- a real 90-degree turn from +Z
+
+    gpose_look_at(NULL, pose_rot, pose_trans, 0, local_axis, target, IDENTITY16, 180.0f);
+
+    float rotated[3];
+    rotate_vec(pose_rot, local_axis, rotated);
+    CHECK(near(rotated[0], 1.0f) && near(rotated[1], 0.0f) && near(rotated[2], 0.0f),
+          "unclamped look_at rotates local_axis to face the target exactly");
+}
+
+static void test_look_at_respects_max_angle_clamp(void) {
+    // Same 90-degree-away target, but clamped to a small real angle (the founder's own "up to 30
+    // degrees" example) -- the joint should turn TOWARD the target but not reach it.
+    float pose_rot[4] = {0, 0, 0, 1};
+    float pose_trans[3] = {0, 0, 0};
+    float local_axis[3] = {0, 0, 1};
+    float target[3] = {1, 0, 0};
+
+    gpose_look_at(NULL, pose_rot, pose_trans, 0, local_axis, target, IDENTITY16, 30.0f);
+
+    float identity_q[4] = {0, 0, 0, 1};
+    float turned_deg = 2.0f * acosf(fabsf(pose_rot[3])) * (180.0f / 3.14159265f);
+    CHECK(turned_deg <= 30.5f, "clamped look_at does not exceed max_angle_deg (real, small nlerp/slerp approximation error allowed)");
+    CHECK(turned_deg > 1.0f, "clamped look_at still turns a real, non-trivial amount toward the target");
+
+    float rotated[3];
+    rotate_vec(pose_rot, local_axis, rotated);
+    CHECK(rotated[0] > 0.0f, "clamped look_at turns TOWARD +X, just not all the way");
+    (void)identity_q;
+}
+
+static void test_look_at_leaves_pose_untouched_when_target_is_on_the_joint(void) {
+    // A degenerate case: target == the joint's own world position (dir has zero length). Must
+    // leave pose_rot exactly as it was, not divide by zero or produce garbage.
+    float pose_rot[4] = {0.1f, 0.2f, 0.3f, 0.9273618f}; // an arbitrary, already-normalized quat
+    float pose_trans[3] = {5.0f, 6.0f, 7.0f};
+    float local_axis[3] = {0, 0, 1};
+    float target[3] = {5.0f, 6.0f, 7.0f}; // exactly at the joint's own local position
+
+    float before[4] = {pose_rot[0], pose_rot[1], pose_rot[2], pose_rot[3]};
+    gpose_look_at(NULL, pose_rot, pose_trans, 0, local_axis, target, IDENTITY16, 30.0f);
+    CHECK(near(pose_rot[0], before[0]) && near(pose_rot[1], before[1]) &&
+          near(pose_rot[2], before[2]) && near(pose_rot[3], before[3]),
+          "look_at leaves pose_rot untouched when the target coincides with the joint itself");
+}
+
 int main(void) {
     test_rest_pose_is_identity_skin();
     test_root_rotation_moves_child_vertex();
+    test_look_at_full_rotation_faces_target();
+    test_look_at_respects_max_angle_clamp();
+    test_look_at_leaves_pose_untouched_when_target_is_on_the_joint();
     printf("%s: %d failure(s)\n", failures == 0 ? "OK" : "FAILED", failures);
     return failures == 0 ? 0 : 1;
 }

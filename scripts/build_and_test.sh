@@ -33,6 +33,11 @@ gcc -Wall -Wextra -O2 -o /tmp/gb_test_gpose tests/test_gpose.c src/gpose.c -lm
 /tmp/gb_test_gpose
 
 echo
+echo "== gsync multi-actor frame synchronization (S144-XX) =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_gsync tests/test_gsync.c src/gsync.c
+/tmp/gb_test_gsync
+
+echo
 echo "== gbtool (Go) =="
 # GOWORK=off: this repo is intentionally standalone, not part of the
 # monorepo's go.work (mirrors SHANKPIT/PITVIPER/EmilyOS's own convention —
