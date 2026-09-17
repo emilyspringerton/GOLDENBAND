@@ -1,6 +1,7 @@
 # GOLDENBAND Changelog
 
 ## 2026-09-17
+- feat: bone-controller look-at (gpose_look_at, on newly-exposed gpose_compute_joint_world) + multi-actor frame sync (new gsync.c/.h, a real named arrival barrier). Founder real-time follow-up (Apple #20015) to the Half-Life scripted_sequence breakdown. Phoneme lip-sync checked and correctly deferred: SHANKPIT has no WAV/audio-asset loader anywhere, so even amplitude-envelope lip sync has no real audio to sample. 10 new tests, full suite green (sess-20260905-0720-ec33e7c5)
 
 - Raise GSKEL_MAX_JOINTS 64 -> 128 -- a real 65-joint rig hit the old cap on first real use (sess-20260905-0720-ec33e7c5)
 
