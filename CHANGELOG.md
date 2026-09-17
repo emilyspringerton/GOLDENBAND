@@ -1,6 +1,7 @@
 # GOLDENBAND Changelog
 
 ## 2026-09-17
+- feat: gband_skel_npc_load_kit/draw gain optional greet/dance gesture clips per kit (GBAND_SKEL_NPC_ANIM_AUTO/GREET/DANCE), each real and independently optional per character. Founder real-time: 'wave to the player when the player gets close and then dance before resuming patrol' (sess-20260905-0720-ec33e7c5)
 - feat: gband_skel_npc rewritten for multiple simultaneous character kits (GbandSkelNpcKit array, kit_index-parameterized load/draw), replacing the old single-global-asset design. Founder real-time: 'GEORGE LEELA MIKE AND STAN ARE ANIMATED ROBOT CHARACTERS WITH MESH RIG AND ANIMATIONS PER BOT' (sess-20260905-0720-ec33e7c5)
 - feat: gband_skel_npc gains real idle/walk clip switching, adopting gband_mesh_rig.c's own proven movement-delta pattern. Founder real-time follow-up: 'can we animate and model end to end?' (sess-20260905-0720-ec33e7c5)
 - feat: bone-controller look-at (gpose_look_at, on newly-exposed gpose_compute_joint_world) + multi-actor frame sync (new gsync.c/.h, a real named arrival barrier). Founder real-time follow-up (Apple #20015) to the Half-Life scripted_sequence breakdown. Phoneme lip-sync checked and correctly deferred: SHANKPIT has no WAV/audio-asset loader anywhere, so even amplitude-envelope lip sync has no real audio to sample. 10 new tests, full suite green (sess-20260905-0720-ec33e7c5)
