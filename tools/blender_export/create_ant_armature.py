@@ -3,7 +3,7 @@ Blender scene for a new "Ant" hero, following exactly the same pattern
 create_tyler_armature.py already established (same JOINTS-table shape,
 same headless --save invocation, same export path through
 export_gband_rig.py -- nothing new needed on the format/sampler side:
-gskel.h's own GSKEL_MAX_JOINTS is 64 and joint_count/hierarchy are read
+gskel.h's own GSKEL_MAX_JOINTS is 128 and joint_count/hierarchy are read
 from the file, not hardcoded to Tyler's own 5-bone shape, so a real,
 different body plan is exactly as supported as Tyler's was).
 

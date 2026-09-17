@@ -11,7 +11,7 @@ choices below.
 Two real armatures exist so far, both built the same way (a `create_*_armature.py` script that
 constructs the Armature procedurally in Blender's own Python API, not hand-modeled) and both
 export through the exact same `.gskel`/`.gmesh`/`.gband` pipeline below — the format has no
-hardcoded bone count/hierarchy (`GSKEL_MAX_JOINTS` is 64, read from the file), so a new rig is
+hardcoded bone count/hierarchy (`GSKEL_MAX_JOINTS` is 128, read from the file), so a new rig is
 never a format change, just a new joint table:
 
 | Rig | Bones | Body plan |

@@ -13,9 +13,15 @@
 #define GSKEL_NAME_LEN 32
 // Fixed cap, not a dynamic array: every consumer of a GSkel wants
 // stack-allocatable, copyable-by-value poses (an array of joint_count world
-// matrices) without a matching alloc/free -- 64 joints is comfortably above
-// any skeleton this v0 pass anticipates (S144-06's own rig uses 5).
-#define GSKEL_MAX_JOINTS 64
+// matrices) without a matching alloc/free. Real, found-live correction
+// (2026-09-17): the original 64 was NOT comfortably above every real
+// skeleton this pass anticipates -- a real glTF import failed with "skin has
+// 65 joints, exceeds GSKEL_MAX_JOINTS (64)" the very first time someone
+// imported a real, full-body+hands rig (a common real joint count once
+// individual finger bones are included, e.g. a typical Mixamo-style rig).
+// 128 is a real, generous ceiling above that (16KB per GSkel at 128 bytes/
+// joint -- still trivially stack-allocatable), not a guess.
+#define GSKEL_MAX_JOINTS 128
 
 typedef struct {
     char name[GSKEL_NAME_LEN];       // null-terminated if shorter than GSKEL_NAME_LEN

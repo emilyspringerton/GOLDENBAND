@@ -16,7 +16,7 @@ const (
 	gskelHeaderSize      = 12
 	gskelJointRecordSize = 128
 	gskelNameLen         = 32
-	gskelMaxJoints       = 64 // matches src/gskel.h's GSKEL_MAX_JOINTS exactly
+	gskelMaxJoints       = 128 // matches src/gskel.h's GSKEL_MAX_JOINTS exactly
 )
 
 // GSkelJoint mirrors the C GSkelJoint struct field-for-field.
