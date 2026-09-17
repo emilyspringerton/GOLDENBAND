@@ -28,6 +28,11 @@ gcc -Wall -Wextra -O2 -o /tmp/gb_test_gseq tests/test_gseq.c src/gseq.c src/gban
 /tmp/gb_test_gseq
 
 echo
+echo "== gpose forward kinematics + skinning (S144-XX) =="
+gcc -Wall -Wextra -O2 -o /tmp/gb_test_gpose tests/test_gpose.c src/gpose.c -lm
+/tmp/gb_test_gpose
+
+echo
 echo "== gbtool (Go) =="
 # GOWORK=off: this repo is intentionally standalone, not part of the
 # monorepo's go.work (mirrors SHANKPIT/PITVIPER/EmilyOS's own convention —

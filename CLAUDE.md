@@ -32,6 +32,20 @@ src/gseq.h, gseq.c       — real animation STITCHING (founder real-time: "make 
                             header comment for the full design and what it deliberately doesn't
                             cover yet (no authored .gseq asset format/NOCK UI, single blend
                             duration per whole sequence).
+src/gpose.h, gpose.c     — real general forward kinematics + mesh skinning for an arbitrary
+                            joint count (founder real-time, 2026-09-17: "we want animations in
+                            game... build the affordances to start building the animations into
+                            the games"). Closes a real gap: SHANKPIT's existing
+                            gband_mesh_rig.c hardcodes a 5-joint armature with manually-indexed
+                            channels (real, working for Tyler's own hand-authored rig, but not
+                            reusable for any other skeleton) -- gpose.c is the general N-joint
+                            replacement, self-contained column-major float[16] math with no
+                            engine Mat4 dependency, consumed by taking a pose (e.g. from
+                            gseq_player_sample_pose) and producing skin matrices, then a flat
+                            pos+normal triangle list ready for a consuming engine's own render
+                            bridge (vendored per-engine the same way gband_mesh_rig.c itself
+                            was already ported from REDGARDEN -- see gpose.h's own header
+                            comment).
 tools/gbtool/            — Go CLI: BVH import, glTF import (quaternion anim + mesh + skeleton),
                             hash, validate (standalone Go module)
 tests/test_sha256.c      — sha256.h against NIST FIPS 180-4 vectors
