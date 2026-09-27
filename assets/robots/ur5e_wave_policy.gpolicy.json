@@ -1,0 +1,17 @@
+{
+  "gpolicy_version": 1,
+  "policy_hash": "e375fa8ddd01d2846d4e28e689ba5e1c7684ef15a2715c6353f13bbdc241a5b2",
+  "robot": "ur5e",
+  "robot_spec_hash": "c840a138843ef58ef2f62fb56c49886d577c4c7722f6d48e8f379e115845b2d6",
+  "clip": "ur5e_wave",
+  "clip_content_hash": "701d141b3ca9172e91034120aa393f716fc4622236b9649df032df8d2e9ead71",
+  "reward_id": "f1ce2612d3309b18207557de37d54f43555cd2a0be8265959ac06e57dcab81c7",
+  "policy": {"kind": "linear", "obs_dim": 19, "act_dim": 6, "harmonics": 3},
+  "trainer": {"method": "cross-entropy", "seed": 1, "iters": 40, "pop": 32, "elites": 6, "dr_samples": 2},
+  "reward_profile": "w_pose = 0.5\nw_vel = 0.10000000000000001\nw_ee = 0.40000000000000002\nw_energy = 0.02\nw_smooth = 0.050000000000000003\nw_limit = 0.20000000000000001\nk_pose = 200\nk_vel = 0.5\nk_ee = 2000\nenergy_scale = 200\nservo_hz = 5\nservo_zeta = 1\naction_scale = 0.20000000000000001\ndr_mass_jitter = 0.10000000000000001\n",
+  "frozen_eval": {
+    "eval_seeds": 8,
+    "baseline": {"return": 0.277271, "pose": 0.218054, "vel": 0.949599, "ee": 0.193496, "energy": -0.205691, "smooth": 0.000000, "limit": 0.000000, "saturated_fraction": 0.000000, "peak_speed": 2.998817, "peak_torque": 77.056198},
+    "trained": {"return": 0.901758, "pose": 0.876914, "vel": 0.952004, "ee": 0.930429, "energy": -0.201052, "smooth": -0.000991, "limit": 0.000000, "saturated_fraction": 0.000000, "peak_speed": 3.036740, "peak_torque": 76.858674}
+  }
+}

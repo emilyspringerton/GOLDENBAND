@@ -6,6 +6,7 @@
 //	gbtool bake-ease --out <name> --channel <name> --ticks <n> [--tick-rate <n>]
 //	gbtool hash <name>
 //	gbtool validate <name>
+//	gbtool robot import-ur|compile|bake-motion|check ...   (see robot_cmd.go)
 //
 // <name> resolves to <name>.gband (binary) and <name>.gband.json (manifest).
 package main
@@ -34,6 +35,8 @@ func main() {
 		code = runHash(os.Args[2:])
 	case "validate":
 		code = runValidate(os.Args[2:])
+	case "robot":
+		code = runRobot(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "gbtool: unknown command %q\n\n", os.Args[1])
 		usage()
@@ -48,7 +51,11 @@ func usage() {
   gbtool import --gltf <file.glb|.gltf> --out <name> [--tick-rate <n>] [--kind ...] [--who <text>]
   gbtool bake-ease --out <name> --channel <name> --ticks <n> [--tick-rate <n>]
   gbtool hash <name>
-  gbtool validate <name>`)
+  gbtool validate <name>
+  gbtool robot import-ur --model <ur3e|ur5e|ur10e> --dir <yaml dir> --commit <sha> --out <spec.grobot.json>
+  gbtool robot compile --robot <spec.grobot.json> --out <name>
+  gbtool robot bake-motion --robot <spec> --out <name> --keyframes "t:q1,..,qN;..." [--radians] [--tick-rate n]
+  gbtool robot check --robot <spec> --clip <name> [--gravity x,y,z] [--annotate] [--csv out.csv]`)
 }
 
 // runImportGLTF converts a glTF/.glb file into real .gskel/.gmesh/.gband

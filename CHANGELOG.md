@@ -1,5 +1,10 @@
 # GOLDENBAND Changelog
 
+## 2026-09-27
+- feat(physics): src/grb.{h,c} -- formal XPBD rigid body physics (6-DOF bodies, quaternions, full inertia + gyroscopic term, hinge/ball/fixed joints with limits, implicit effort/speed-limited servos at 1024 Hz substeps, ground contact with Coulomb friction + restitution); tests/test_grb.c checks 24 closed-form cases. Founder real-time: "upgrade shankpit and nock to formal rigid body physics" (sess-20260927-1025-5b0d7c3e)
+- feat(robots): datasheet robot rigs -- robots/{ur3e,ur5e,ur10e}.grobot.json generated from Universal Robots' own published description data (gbtool robot import-ur, sources vendored + pinned), compiled .grobot/.gskel (gbtool robot compile), src/grobot.{h,c} spawns them as articulated rigid bodies; gbtool robot check = exact RNEA feasibility pass (SIM-100 §3); bake-motion authors minimum-jerk reference clips. Verified vs UR's DH params and RNEA (power balance + Euler-Lagrange + sim holding torques within 1%). Founder real-time: "get goldenband rigged up with real robot data from industrial data sheets" (sess-20260927-1025-5b0d7c3e)
+- feat(rl): src/grl.{h,c} reward compiler + physics env and tools/gbtrain (CEM, DR, frozen eval, .gpolicy + physically-achieved rollout .gband); UR5e wave example 0.28 -> 0.90 held-out return. README updated (SAGA). Founder real-time: "and the rl animations pipeline" (sess-20260927-1025-5b0d7c3e)
+
 ## 2026-09-17
 - feat: gband_skel_npc_load_kit/draw gain optional greet/dance gesture clips per kit (GBAND_SKEL_NPC_ANIM_AUTO/GREET/DANCE), each real and independently optional per character. Founder real-time: 'wave to the player when the player gets close and then dance before resuming patrol' (sess-20260905-0720-ec33e7c5)
 - feat: gband_skel_npc rewritten for multiple simultaneous character kits (GbandSkelNpcKit array, kit_index-parameterized load/draw), replacing the old single-global-asset design. Founder real-time: 'GEORGE LEELA MIKE AND STAN ARE ANIMATED ROBOT CHARACTERS WITH MESH RIG AND ANIMATIONS PER BOT' (sess-20260905-0720-ec33e7c5)
