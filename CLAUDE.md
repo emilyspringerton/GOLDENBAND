@@ -117,7 +117,8 @@ tooling-consumed).
 - Multi-skin/multi-mesh/multi-clip glTF files in one import run (first of each only, see
   `format/GBAND_FORMAT.md`'s own gap list).
 - True slerp for quaternion channel blending (nlerp only, both at import and in `gb_blend`).
-- Retargeting maps, hardware feasibility passes.
+- Retargeting maps. (A hardware feasibility pass exists for robot clips as of 2026-09-27 --
+  `gbtool robot check`, exact inverse dynamics against datasheet limits.)
 - A GPU training backbone / Isaac-MJX adapter, neural policies, floating-base (humanoid/ragdoll)
   training, body-vs-body collision in grb. (Reward compiler + a CPU CEM backbone for fixed-base
   robots exist as of 2026-09-27 -- src/grl.c, tools/gbtrain.)

@@ -98,7 +98,8 @@ typedef struct {
     double command_torque;    // TORQUE mode
     double effort_limit;      // N*m, datasheet max joint torque
     double velocity_limit;    // rad/s, datasheet max joint speed
-    double damping;           // viscous joint friction, N*m*s/rad (always on, not clamped)
+    double damping;           // passive viscous joint friction, N*m*s/rad (hinge and ball; not
+                              // drawn from the motor's effort budget)
     // Outputs, refreshed every grb_world_step.
     double angle;             // unwrapped hinge angle (rad)
     double angle_velocity;    // rad/s

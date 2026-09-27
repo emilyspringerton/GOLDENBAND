@@ -670,6 +670,23 @@ static double effort_room(const GrbJoint *j, double used) {
 static void solve_joint_velocities(GrbWorld *w, double h) {
     for (uint32_t ji = 0; ji < w->joint_count; ji++) {
         GrbJoint *j = &w->joints[ji];
+        if (j->type == GRB_JOINT_BALL && j->damping > 0.0) {
+            // Passive viscous damping of the full relative angular velocity (ragdoll "muscle
+            // tone"), same bounded-impulse form as the hinge case below.
+            GrbBody *A = body_ptr(w, j->body_a), *B = body_ptr(w, j->body_b);
+            double wa[3] = {0, 0, 0}, d[3];
+            if (A) v3_copy(wa, A->omega);
+            v3_sub(d, B->omega, wa);
+            double m = v3_len(d);
+            if (m > 1e-12) {
+                double n[3];
+                v3_scale(n, d, 1.0 / m);
+                double winv = gen_inv_mass_ang(A, n) + gen_inv_mass_ang(B, n);
+                double c = j->damping * h * winv;
+                if (winv > 0.0) apply_ang_vel_impulse(A, B, n, -m * (c < 1.0 ? c : 1.0) / winv);
+            }
+            continue;
+        }
         if (j->type != GRB_JOINT_HINGE) continue;
         GrbBody *A = body_ptr(w, j->body_a), *B = body_ptr(w, j->body_b);
         double n[3], raw;
